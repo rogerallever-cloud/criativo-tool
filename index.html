@@ -787,7 +787,7 @@ async function gerarVideoVeo3(btn) {
   try {
     // 1. Iniciar geração
     const initResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/veo-3.0-generate-preview:predictLongRunning?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
