@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criativo Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0f;
+    --surface: #161618;
+    --surface2: #1e1e21;
+    --border: #2a2a2e;
+    --border2: #333338;
+    --text: #f0f0f0;
+    --text2: #9090a0;
+    --text3: #555560;
+    --accent: #7c6bff;
+    --accent2: #a594ff;
+    --green: #3ecf8e;
+    --red: #ff5e5e;
+    --orange: #ff9f43;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 20px 80px;
+  }
+  .container { width: 100%; max-width: 720px; }
+
+  header { margin-bottom: 28px; }
+  header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  /* TABS */
+  .tabs-bar {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 9px 16px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--surface2); }
+  .tab-btn.active { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 6px; }
+  input[type=text], input[type=password], textarea, select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type=text]:focus, input[type=password]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  input[type=password] { font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: 0.05em; }
+  textarea { resize: vertical; line-height: 1.6; }
+  select option { background: var(--surface2); }
+
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+  .field { margin-bottom: 14px; }
+  .hint { font-size: 12px; color: var(--text3); margin-top: 5px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 4px 0 14px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { background: #3a3a4a; color: var(--text3); cursor: not-allowed; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+  .btn-green { background: var(--green); color: #0e0e0f; }
+  .btn-green:hover { opacity: 0.85; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+  /* STATUS */
+  .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text2);
+    padding: 4px 10px; border-radius: 99px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .status.ok { color: var(--green); border-color: #1a4a35; background: #0d2a20; }
+  .status.err { color: var(--red); border-color: #4a1a1a; background: #2a0d0d; }
+  .status.loading { color: var(--accent2); border-color: #2a2050; background: #16132a; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .dot.pulse { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* OUTPUT */
+  .output-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .output-label { font-size: 12px; color: var(--text3); font-weight: 500; }
+  .output-block {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px;
+    font-size: 14px; line-height: 1.7; color: var(--text);
+    white-space: pre-wrap; min-height: 60px;
+  }
+  .copy-btn {
+    background: transparent; border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text2);
+    font-size: 12px; font-family: 'DM Sans', sans-serif;
+    padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--surface2); color: var(--text); }
+
+  audio { width: 100%; margin-top: 8px; border-radius: var(--radius-sm); }
+
+  /* VOICE ROW */
+  .voice-row { display: flex; gap: 8px; align-items: flex-end; }
+  .voice-row select { flex: 1; }
+
+  /* VEO3 CENAS */
+  .scene-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--surface2);
+  }
+  .scene-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .scene-num { font-size: 11px; color: var(--accent2); font-weight: 600; letter-spacing: 0.05em; }
+  .scene-dur { font-size: 11px; color: var(--text3); }
+  .scene-text { font-size: 14px; color: var(--text); line-height: 1.6; }
+  .scene-copy-btn {
+    background: transparent; border: 1px solid var(--border2);
+    border-radius: 4px; color: var(--text3);
+    font-size: 11px; font-family: 'DM Sans', sans-serif;
+    padding: 2px 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .scene-copy-btn:hover { color: var(--text); border-color: var(--border); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Criativo Tool</h1>
+    <p>ElevenLabs · Veo3</p>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" onclick="switchTab('eleven')">🎙 ElevenLabs</button>
+    <button class="tab-btn" onclick="switchTab('veo3')">🎬 Veo3</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ABA: ELEVENLABS
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-eleven">
+
+    <!-- CONFIG -->
+    <div class="card">
+      <div class="card-title">Configuração</div>
+      <div class="field">
+        <label>Chave de API do ElevenLabs</label>
+        <input type="password" id="api-key" placeholder="sk_..." oninput="salvarChave()" />
+        <div class="hint">Salva automaticamente no seu computador.</div>
+      </div>
+      <div class="field">
+        <label>Voz</label>
+        <div class="voice-row">
+          <select id="voice-select" onchange="onVoiceSelect()">
+            <option value="">— Selecionar voz —</option>
+            <optgroup label="Vozes salvas">
+              <option value="AQsfyaKKcK2sjeRjsPSo">Bruno Morelli</option>
+              <option value="nd1z1vC7yrh6u3ZztpCd">Renato Voice</option>
+              <option value="KHmfNHtEjHhLK9eER20w">Fernanda - Formal and Neutral</option>
+              <option value="gCHqAzYAOh2D3oOFaXZ6">Mariana</option>
+            </optgroup>
+            <optgroup label="Outras">
+              <option value="custom">✏️ Digitar ID manualmente</option>
+            </optgroup>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="carregarVozes()">↻ Carregar</button>
+        </div>
+        <input type="text" id="voice-id" placeholder="ID da voz" style="margin-top:8px; font-family:'DM Mono',monospace; font-size:12px;" />
+      </div>
+
+    </div>
+
+    <!-- HOOKS -->
+    <div class="card">
+      <div class="card-title">Hooks</div>
+      <div id="hooks-container">
+        <div class="field hook-field">
+          <label>Hook 1</label>
+          <textarea class="hook-input" rows="3" placeholder="Cole o hook 1 aqui..."></textarea>
+          <div class="actions" style="margin-top:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="gerarAudioHook(this)">▶ Gerar áudio</button>
+          </div>
+          <div class="hook-status" style="margin-top:8px; display:none;"></div>
+          <div class="hook-audio-wrap" style="display:none; margin-top:8px;">
+            <audio controls></audio>
+            <button class="btn btn-green btn-sm" style="margin-top:8px;" onclick="baixarAudioHook(this)">↓ Baixar</button>
+          </div>
+        </div>
+        <div class="field hook-field">
+          <label>Hook 2</label>
+          <textarea class="hook-input" rows="3" placeholder="Cole o hook 2 aqui..."></textarea>
+          <div class="actions" style="margin-top:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="gerarAudioHook(this)">▶ Gerar áudio</button>
+          </div>
+          <div class="hook-status" style="margin-top:8px; display:none;"></div>
+          <div class="hook-audio-wrap" style="display:none; margin-top:8px;">
+            <audio controls></audio>
+            <button class="btn btn-green btn-sm" style="margin-top:8px;" onclick="baixarAudioHook(this)">↓ Baixar</button>
+          </div>
+        </div>
+        <div class="field hook-field">
+          <label>Hook 3</label>
+          <textarea class="hook-input" rows="3" placeholder="Cole o hook 3 aqui..."></textarea>
+          <div class="actions" style="margin-top:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="gerarAudioHook(this)">▶ Gerar áudio</button>
+          </div>
+          <div class="hook-status" style="margin-top:8px; display:none;"></div>
+          <div class="hook-audio-wrap" style="display:none; margin-top:8px;">
+            <audio controls></audio>
+            <button class="btn btn-green btn-sm" style="margin-top:8px;" onclick="baixarAudioHook(this)">↓ Baixar</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:4px;">
+        <button class="btn btn-ghost btn-sm" onclick="adicionarHook()">+ Adicionar hook</button>
+      </div>
+    </div>
+
+    <!-- ROTEIRO -->
+    <div class="card">
+      <div class="card-title">Corpo</div>
+      <div class="field">
+        <label>Cole o roteiro bruto aqui</label>
+        <textarea id="roteiro-input" rows="7" placeholder="Corpo:&#10;Surreal, né?&#10;E pasme…&#10;usando só a câmera do iPhone."></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="ajustarRoteiro()">✦ Ajustar roteiro</button>
+      </div>
+      <div id="roteiro-status" style="margin-top:12px; display:none;"></div>
+      <div id="roteiro-output-wrap" style="display:none; margin-top:16px;">
+        <hr class="divider">
+        <div class="output-header">
+          <span class="output-label">Roteiro ajustado</span>
+          <button class="copy-btn" onclick="copiarEl('roteiro-output')">Copiar</button>
+        </div>
+        <div class="output-block" id="roteiro-output"></div>
+      </div>
+    </div>
+
+    <!-- GERAR ÁUDIO -->
+    <div class="card">
+      <div class="card-title">Gerar Áudio do Roteiro</div>
+      <div class="field">
+        <label>Texto para gerar</label>
+        <textarea id="tts-input" rows="5" placeholder="O roteiro ajustado aparece aqui automaticamente..."></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-gerar" onclick="gerarAudio()">▶ Gerar áudio</button>
+      </div>
+      <div id="audio-status" style="margin-top:12px; display:none;"></div>
+      <div id="audio-section" style="display:none; margin-top:16px;">
+        <hr class="divider">
+        <div class="output-header">
+          <span class="output-label">Áudio gerado</span>
+          <button class="btn btn-green btn-sm" onclick="baixarAudio()">↓ Baixar</button>
+        </div>
+        <audio id="audio-player" controls></audio>
+      </div>
+    </div>
+
+  </div><!-- /tab-eleven -->
+
+  <!-- ══════════════════════════════════════════
+       ABA: VEO3
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-veo3">
+
+    <div class="card">
+      <div class="card-title">Configuração</div>
+      <div class="field">
+        <label>Chave de API do Google (Gemini)</label>
+        <input type="password" id="google-api-key" placeholder="AIza..." oninput="salvarChaveGoogle()" />
+        <div class="hint">Salva automaticamente no seu computador.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Roteiro → Cenas de 8s</div>
+      <div class="field">
+        <label>Cole o roteiro bruto aqui</label>
+        <textarea id="veo-input" rows="10" placeholder="Host: [ele vira pra câmera]&#10;Surreal, né?&#10;Corpo:&#10;E pasme…&#10;usando só a câmera do iPhone."></textarea>
+        <div class="hint">Limpa marcadores, abreviações e separa em blocos de ~8 segundos por personagem.</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="processarVeo3()">✦ Processar roteiro</button>
+      </div>
+      <div id="veo-status" style="margin-top:12px; display:none;"></div>
+    </div>
+
+    <div id="veo-output-wrap" style="display:none;">
+      <div class="card">
+        <div class="output-header" style="margin-bottom:12px;">
+          <span class="card-title" style="margin:0;">Cenas geradas</span>
+          <button class="copy-btn" onclick="copiarTodasCenas()">Copiar tudo</button>
+        </div>
+        <div id="veo-cenas"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-veo3 -->
+
+</div><!-- /container -->
+
+<script>
+let audioBlob = null;
+let hookCount = 3;
+
+// ─── TABS ───────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ─── CHAVE API ──────────────────────────────────────────────────────
+function salvarChave() {
+  localStorage.setItem('eleven_api_key', document.getElementById('api-key').value);
+}
+function carregarChave() {
+  const key = localStorage.getItem('eleven_api_key');
+  if (key) document.getElementById('api-key').value = key;
+}
+window.addEventListener('DOMContentLoaded', () => { carregarChave(); carregarChaveGoogle(); });
+
+// ─── VOZES ──────────────────────────────────────────────────────────
+async function carregarVozes() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) { alert('Informe a chave de API primeiro.'); return; }
+  try {
+    const resp = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': apiKey }
+    });
+    const data = await resp.json();
+    if (!data.voices) { alert('Erro ao carregar vozes. Verifique a chave.'); return; }
+    const select = document.getElementById('voice-select');
+    select.innerHTML = '<option value="">— Selecionar voz —</option><optgroup label="Vozes salvas"><option value="AQsfyaKKcK2sjeRjsPSo">Bruno Morelli</option><option value="nd1z1vC7yrh6u3ZztpCd">Renato Voice</option><option value="KHmfNHtEjHhLK9eER20w">Fernanda - Formal and Neutral</option><option value="gCHqAzYAOh2D3oOFaXZ6">Mariana</option></optgroup><optgroup label="Da conta">';
+    data.voices.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.voice_id;
+      opt.textContent = v.name;
+      select.appendChild(opt);
+    });
+    select.innerHTML += '</optgroup><optgroup label="Outras"><option value="custom">✏️ Digitar ID</option></optgroup>';
+  } catch(e) {
+    alert('Erro ao conectar: ' + e.message);
+  }
+}
+
+function onVoiceSelect() {
+  const sel = document.getElementById('voice-select').value;
+  if (sel && sel !== 'custom') {
+    document.getElementById('voice-id').value = sel;
+  } else if (sel === 'custom') {
+    document.getElementById('voice-id').value = '';
+    document.getElementById('voice-id').focus();
+  }
+}
+
+// ─── LIMPEZA DE TEXTO ───────────────────────────────────────────────
+function ajustarTextoLocal(texto) {
+  let t = texto;
+  t = t.replace(/\[.*?\]/g, '');
+  t = t.replace(/\(.*?\)/g, '');
+  // Marcadores de copy com ":" — ex: "Corpo:", "Ação/Close:"
+  t = t.replace(/^[A-Za-zÀ-ÿ\/\-\s]{1,30}:\s*$/gim, '');
+  // Linhas com 1-2 palavras sozinhas sem ":" — ex: "Corpo", "Desejo", "Ação/Close"
+  t = t.replace(/^[A-Za-zÀ-ÿ\/\-]+(?:\s[A-Za-zÀ-ÿ\/\-]+)?\s*$/gm, '');
+  t = t.replace(/\.{2,}/g, ',');
+  t = t.replace(/\s*—\s*/g, ', ');
+  t = t.replace(/\s*-\s*$/gm, '');
+  t = t.replace(/[*#]/g, '');
+  const abrev = {
+    '\\bvc\\b':'você','\\bvcs\\b':'vocês','\\bpq\\b':'porque',
+    '\\btb\\b':'também','\\btbm\\b':'também','\\bdae\\b':'daí',
+    '\\bmsm\\b':'mesmo','\\bqdo\\b':'quando','\\bqq\\b':'qualquer',
+    '\\bmt\\b':'muito','\\bmto\\b':'muito','\\bblz\\b':'beleza',
+    '\\bflw\\b':'falou','\\bvlw\\b':'valeu','\\bkd\\b':'cadê',
+    '\\bpfv\\b':'por favor','\\bobg\\b':'obrigado','\\brs\\b':'',
+  };
+  Object.entries(abrev).forEach(([k,v]) => { t = t.replace(new RegExp(k,'gi'), v); });
+  t = t.replace(/\.\s*\n\s*([a-záéíóúãõâêô])/gi, ', $1');
+  t = t.replace(/\n{3,}/g, '\n\n');
+  t = t.split('\n').map(l => l.trim()).filter(l => l.length > 0).join(' ');
+  t = t.replace(/\s{2,}/g, ' ').trim();
+  return t;
+}
+
+// ─── ROTEIRO ELEVENLABS ─────────────────────────────────────────────
+async function ajustarRoteiro() {
+  const texto = document.getElementById('roteiro-input').value.trim();
+  if (!texto) { alert('Cole o roteiro antes de ajustar.'); return; }
+  setStatus('roteiro-status', 'loading', 'Ajustando...');
+  document.getElementById('roteiro-output-wrap').style.display = 'none';
+  try {
+    const ajustado = ajustarTextoLocal(texto);
+    document.getElementById('roteiro-output').innerText = ajustado;
+    document.getElementById('tts-input').value = ajustado;
+    document.getElementById('roteiro-output-wrap').style.display = 'block';
+    setStatus('roteiro-status', 'ok', 'Roteiro ajustado');
+  } catch(e) {
+    setStatus('roteiro-status', 'err', 'Erro: ' + e.message);
+  }
+}
+
+// ─── GERAR ÁUDIO ROTEIRO ────────────────────────────────────────────
+async function gerarAudio() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const voiceId = document.getElementById('voice-id').value.trim();
+  const texto = document.getElementById('tts-input').value.trim();
+  if (!apiKey) { alert('Informe a chave de API.'); return; }
+  if (!voiceId) { alert('Selecione ou informe o ID da voz.'); return; }
+  if (!texto) { alert('Informe o texto para gerar o áudio.'); return; }
+
+  const stability = 0.5;
+  const similarity = 0.75;
+  const style = 0;
+
+  setStatus('audio-status', 'loading', 'Gerando áudio...');
+  document.getElementById('audio-section').style.display = 'none';
+  document.getElementById('btn-gerar').disabled = true;
+
+  try {
+    const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({ text: texto, model_id: 'eleven_v3', voice_settings: { stability, similarity_boost: similarity, style, use_speaker_boost: true } })
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail?.message || JSON.stringify(err)); }
+    audioBlob = await resp.blob();
+    const url = URL.createObjectURL(audioBlob);
+    const player = document.getElementById('audio-player');
+    player.src = url;
+    document.getElementById('audio-section').style.display = 'block';
+    setStatus('audio-status', 'ok', 'Áudio gerado');
+    player.play();
+  } catch(e) {
+    setStatus('audio-status', 'err', 'Erro: ' + e.message);
+  } finally {
+    document.getElementById('btn-gerar').disabled = false;
+  }
+}
+
+function baixarAudio() {
+  if (!audioBlob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(audioBlob);
+  a.download = 'audio_roteiro_' + Date.now() + '.mp3';
+  a.click();
+}
+
+// ─── HOOKS ──────────────────────────────────────────────────────────
+function adicionarHook() {
+  hookCount++;
+  const container = document.getElementById('hooks-container');
+  const div = document.createElement('div');
+  div.className = 'field hook-field';
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <label style="margin:0;">Hook ${hookCount}</label>
+      <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:12px;" onclick="removerHook(this)">✕</button>
+    </div>
+    <textarea class="hook-input" rows="3" placeholder="Cole o hook ${hookCount} aqui..."></textarea>
+    <div class="actions" style="margin-top:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="gerarAudioHook(this)">▶ Gerar áudio</button>
+    </div>
+    <div class="hook-status" style="margin-top:8px;display:none;"></div>
+    <div class="hook-audio-wrap" style="display:none;margin-top:8px;">
+      <audio controls></audio>
+      <button class="btn btn-green btn-sm" style="margin-top:8px;" onclick="baixarAudioHook(this)">↓ Baixar</button>
+    </div>`;
+  container.appendChild(div);
+}
+
+function removerHook(btn) { btn.closest('.hook-field').remove(); }
+
+async function gerarAudioHook(btn) {
+  const field = btn.closest('.hook-field');
+  const texto = field.querySelector('.hook-input').value.trim();
+  const statusEl = field.querySelector('.hook-status');
+  const audioWrap = field.querySelector('.hook-audio-wrap');
+  const audioEl = field.querySelector('audio');
+
+  if (!texto) { alert('Cole o texto do hook antes de gerar.'); return; }
+  const apiKey = document.getElementById('api-key').value.trim();
+  const voiceId = document.getElementById('voice-id').value.trim();
+  if (!apiKey) { alert('Informe a chave de API.'); return; }
+  if (!voiceId) { alert('Selecione ou informe o ID da voz.'); return; }
+
+  const stability = 0.5;
+  const similarity = 0.75;
+  const style = 0;
+
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<span class="status loading"><span class="dot pulse"></span>Gerando áudio...</span>';
+  audioWrap.style.display = 'none';
+  btn.disabled = true;
+
+  try {
+    const textoLimpo = ajustarTextoLocal(texto);
+    const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({ text: textoLimpo, model_id: 'eleven_v3', voice_settings: { stability, similarity_boost: similarity, style, use_speaker_boost: true } })
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail?.message || JSON.stringify(err)); }
+    const blob = await resp.blob();
+    audioEl.src = URL.createObjectURL(blob);
+    audioWrap.style.display = 'block';
+    statusEl.innerHTML = '<span class="status ok"><span class="dot"></span>Áudio gerado</span>';
+    audioEl.play();
+  } catch(e) {
+    statusEl.innerHTML = `<span class="status err"><span class="dot"></span>Erro: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function baixarAudioHook(btn) {
+  const field = btn.closest('.hook-field');
+  const label = field.querySelector('label').innerText.toLowerCase().replace(' ', '_');
+  const audioEl = field.querySelector('audio');
+  if (!audioEl.src) return;
+  const a = document.createElement('a');
+  a.href = audioEl.src;
+  a.download = `audio_${label}_${Date.now()}.mp3`;
+  a.click();
+}
+
+// ─── VEO3 ───────────────────────────────────────────────────────────
+function processarVeo3() {
+  const texto = document.getElementById('veo-input').value.trim();
+  if (!texto) { alert('Cole o roteiro antes de processar.'); return; }
+
+  setStatus('veo-status', 'loading', 'Processando...');
+  document.getElementById('veo-output-wrap').style.display = 'none';
+
+  try {
+    // Separar por personagem antes de limpar
+    const linhas = texto.split('\n');
+    const blocos = []; // { personagem, falas[] }
+    let personagemAtual = null;
+
+    const rePersonagem = /^(Host|Convidado|Apresentador|Narrador|Guest|[A-Za-zÀ-ÿ]+)\s*:/i;
+    const reMarcador = /^[A-Za-zÀ-ÿ\/\-\s]{1,30}:\s*$|^[A-Za-zÀ-ÿ\/\-]+(?:\s[A-Za-zÀ-ÿ\/\-]+)?\s*$/;
+
+    linhas.forEach(linha => {
+      linha = linha.trim();
+      if (!linha) return;
+
+      const matchPersonagem = linha.match(/^(Host|Convidado|Apresentador|Narrador|Guest)\s*:/i);
+      if (matchPersonagem) {
+        personagemAtual = matchPersonagem[1];
+        const resto = linha.replace(/^[^:]+:\s*/, '').trim();
+        if (resto) {
+          if (!blocos.length || blocos[blocos.length-1].personagem !== personagemAtual) {
+            blocos.push({ personagem: personagemAtual, falas: [] });
+          }
+          blocos[blocos.length-1].falas.push(resto);
+        }
+        return;
+      }
+
+      // Linha é marcador de copy? ignora
+      if (reMarcador.test(linha)) return;
+
+      if (!blocos.length || (personagemAtual && blocos[blocos.length-1].personagem !== personagemAtual)) {
+        blocos.push({ personagem: personagemAtual, falas: [] });
+      } else if (!blocos.length) {
+        blocos.push({ personagem: null, falas: [] });
+      }
+      blocos[blocos.length-1].falas.push(linha);
+    });
+
+    // Para cada bloco, limpar e separar em cenas de 8s
+    const todasCenas = [];
+    blocos.forEach(bloco => {
+      const textoBloco = bloco.falas.join(' ');
+      const limpo = ajustarTextoLocal(textoBloco);
+      if (!limpo) return;
+      const cenas = separarEm8s(limpo, bloco.personagem);
+      todasCenas.push(...cenas);
+    });
+
+    renderizarCenas(todasCenas);
+    setStatus('veo-status', 'ok', `${todasCenas.length} cenas geradas`);
+    document.getElementById('veo-output-wrap').style.display = 'block';
+  } catch(e) {
+    setStatus('veo-status', 'err', 'Erro: ' + e.message);
+  }
+}
+
+function separarEm8s(texto, personagem) {
+  // Divide nas pontuações naturais: . , ; ? !
+  // Mantém o separador junto à frase
+  const frases = texto.match(/[^.,;?!]+[.,;?!]*/g) || [texto];
+  const MAX_PALAVRAS = 20; // ~9s teto
+  const MIN_PALAVRAS = 8;  // ~3.5s mínimo antes de agrupar
+  const cenas = [];
+  let cenaAtual = '';
+
+  frases.forEach(frase => {
+    frase = frase.trim();
+    if (!frase) return;
+    const palavrasCena = cenaAtual ? cenaAtual.split(' ').length : 0;
+    const palavrasFrase = frase.split(' ').length;
+
+    if (cenaAtual === '') {
+      cenaAtual = frase;
+    } else if (palavrasCena + palavrasFrase <= MAX_PALAVRAS) {
+      // Cabe — agrupa
+      cenaAtual += ' ' + frase;
+    } else {
+      // Não cabe — fecha cena atual e começa nova
+      if (palavrasCena >= MIN_PALAVRAS) {
+        const n = cenaAtual.split(' ').length;
+        cenas.push({ texto: cenaAtual, palavras: n, duracao: (n/2.2).toFixed(1), personagem });
+        cenaAtual = frase;
+      } else {
+        // Cena atual ainda pequena — agrupa mesmo assim pra não ficar curta demais
+        cenaAtual += ' ' + frase;
+      }
+    }
+  });
+
+  // Fecha última cena
+  if (cenaAtual.trim()) {
+    // Se muito curta, junta com a anterior
+    if (cenaAtual.split(' ').length < MIN_PALAVRAS && cenas.length > 0) {
+      const ultima = cenas[cenas.length - 1];
+      ultima.texto += ' ' + cenaAtual;
+      ultima.palavras = ultima.texto.split(' ').length;
+      ultima.duracao = (ultima.palavras / 2.2).toFixed(1);
+    } else {
+      const n = cenaAtual.split(' ').length;
+      cenas.push({ texto: cenaAtual, palavras: n, duracao: (n/2.2).toFixed(1), personagem });
+    }
+  }
+
+  return cenas;
+}
+
+function renderizarCenas(cenas) {
+  const container = document.getElementById('veo-cenas');
+  container.innerHTML = '';
+  cenas.forEach((c, idx) => {
+    const div = document.createElement('div');
+    div.className = 'scene-block';
+    const personagemLabel = c.personagem ? ` — ${c.personagem}` : '';
+    div.innerHTML = `
+      <div class="scene-header">
+        <span class="scene-num">CENA ${idx + 1}${personagemLabel}</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="scene-dur">~${c.duracao}s · ${c.palavras} palavras</span>
+          <button class="scene-copy-btn" onclick="copiarCena(this)">Copiar</button>
+        </div>
+      </div>
+      <div class="scene-text">${c.texto}</div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="gerarVideoVeo3(this)" style="font-size:12px;">▶ Gerar vídeo</button>
+      </div>
+      <div class="veo-status" style="margin-top:8px;display:none;"></div>
+      <div class="veo-video-wrap" style="display:none;margin-top:8px;">
+        <video controls style="width:100%;border-radius:var(--radius-sm);margin-top:4px;"></video>
+        <button class="btn btn-green btn-sm" style="margin-top:8px;" onclick="baixarVideoVeo3(this)">↓ Baixar</button>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function copiarCena(btn) {
+  const texto = btn.closest('.scene-block').querySelector('.scene-text').innerText;
+  navigator.clipboard.writeText(texto).then(() => {
+    const orig = btn.innerText;
+    btn.innerText = '✓';
+    setTimeout(() => btn.innerText = orig, 1500);
+  });
+}
+
+function copiarTodasCenas() {
+  const cenas = Array.from(document.querySelectorAll('.scene-block')).map((el, i) => {
+    const num = el.querySelector('.scene-num').innerText;
+    const txt = el.querySelector('.scene-text').innerText;
+    return `[${num}]\n${txt}`;
+  }).join('\n\n');
+  navigator.clipboard.writeText(cenas).then(() => {
+    const btn = event.target;
+    const orig = btn.innerText;
+    btn.innerText = 'Copiado ✓';
+    setTimeout(() => btn.innerText = orig, 1500);
+  });
+}
+
+// ─── VEO3 API ───────────────────────────────────────────────────────
+function salvarChaveGoogle() {
+  localStorage.setItem('google_api_key', document.getElementById('google-api-key').value);
+}
+function carregarChaveGoogle() {
+  const key = localStorage.getItem('google_api_key');
+  if (key) document.getElementById('google-api-key').value = key;
+}
+
+async function gerarVideoVeo3(btn) {
+  const scene = btn.closest('.scene-block');
+  const texto = scene.querySelector('.scene-text').innerText.trim();
+  const statusEl = scene.querySelector('.veo-status');
+  const videoWrap = scene.querySelector('.veo-video-wrap');
+  const videoEl = scene.querySelector('video');
+
+  const apiKey = document.getElementById('google-api-key').value.trim();
+  if (!apiKey) { alert('Informe a chave de API do Google na configuração.'); return; }
+  if (!texto) { alert('Cena sem texto.'); return; }
+
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<span class="status loading"><span class="dot pulse"></span>Enviando para o Veo3...</span>';
+  videoWrap.style.display = 'none';
+  btn.disabled = true;
+
+  try {
+    // 1. Iniciar geração
+    const initResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/veo-3.0-generate-preview:predictLongRunning?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instances: [{ prompt: texto }],
+          parameters: {
+            aspectRatio: '9:16',
+            durationSeconds: 8,
+            resolution: '720p',
+            generateAudio: false
+          }
+        })
+      }
+    );
+
+    if (!initResp.ok) {
+      const err = await initResp.json();
+      throw new Error(err.error?.message || JSON.stringify(err));
+    }
+
+    const initData = await initResp.json();
+    const operationName = initData.name;
+    if (!operationName) throw new Error('Operação não retornada pela API.');
+
+    statusEl.innerHTML = '<span class="status loading"><span class="dot pulse"></span>Gerando vídeo... (pode levar ~2 min)</span>';
+
+    // 2. Polling até concluir
+    let videoUrl = null;
+    for (let i = 0; i < 40; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+      const pollResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/${operationName}?key=${apiKey}`
+      );
+      const pollData = await pollResp.json();
+
+      if (pollData.done) {
+        const videos = pollData.response?.generatedSamples || pollData.response?.videos || [];
+        if (videos.length > 0) {
+          videoUrl = videos[0].video?.uri || videos[0].uri;
+        }
+        break;
+      }
+    }
+
+    if (!videoUrl) throw new Error('Tempo esgotado ou vídeo não gerado.');
+
+    videoEl.src = videoUrl;
+    videoWrap.style.display = 'block';
+    statusEl.innerHTML = '<span class="status ok"><span class="dot"></span>Vídeo gerado</span>';
+    videoEl.play();
+
+  } catch(e) {
+    statusEl.innerHTML = `<span class="status err"><span class="dot"></span>Erro: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function baixarVideoVeo3(btn) {
+  const videoEl = btn.closest('.veo-video-wrap').querySelector('video');
+  if (!videoEl.src) return;
+  const a = document.createElement('a');
+  a.href = videoEl.src;
+  a.download = 'video_cena_' + Date.now() + '.mp4';
+  a.click();
+}
+
+// ─── UTILS ──────────────────────────────────────────────────────────
+function copiarEl(id) {
+  navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => {
+    const btn = event.target;
+    const orig = btn.innerText;
+    btn.innerText = 'Copiado ✓';
+    setTimeout(() => btn.innerText = orig, 1500);
+  });
+}
+
+function setStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  el.innerHTML = `<span class="status ${type}"><span class="dot ${type==='loading'?'pulse':''}"></span>${msg}</span>`;
+}
+</script>
+</body>
+</html>
