@@ -595,142 +595,16 @@ function baixarAudioHook(btn) {
   a.click();
 }
 
-// ─── VEO3 ───────────────────────────────────────────────────────────
-function processarVeo3() {
-  const texto = document.getElementById('veo-input').value.trim();
-  if (!texto) { alert('Cole o roteiro antes de processar.'); return; }
-
-  setStatus('veo-status', 'loading', 'Processando...');
-  document.getElementById('veo-output-wrap').style.display = 'none';
-
-  try {
-    // Separar por personagem antes de limpar
-    const linhas = texto.split('\n');
-    const blocos = []; // { personagem, falas[] }
-    let personagemAtual = null;
-
-    const rePersonagem = /^(Host|Convidado|Apresentador|Narrador|Guest|[A-Za-zÀ-ÿ]+)\s*:/i;
-    const reMarcador = /^[A-Za-zÀ-ÿ\/\-\s]{1,30}:\s*$|^[A-Za-zÀ-ÿ\/\-]+(?:\s[A-Za-zÀ-ÿ\/\-]+)?\s*$/;
-
-    linhas.forEach(linha => {
-      linha = linha.trim();
-      if (!linha) return;
-
-      const matchPersonagem = linha.match(/^(Host|Convidado|Apresentador|Narrador|Guest)\s*:/i);
-      if (matchPersonagem) {
-        personagemAtual = matchPersonagem[1];
-        const resto = linha.replace(/^[^:]+:\s*/, '').trim();
-        if (resto) {
-          if (!blocos.length || blocos[blocos.length-1].personagem !== personagemAtual) {
-            blocos.push({ personagem: personagemAtual, falas: [] });
-          }
-          blocos[blocos.length-1].falas.push(resto);
-        }
-        return;
-      }
-
-      // Linha é marcador de copy? ignora
-      if (reMarcador.test(linha)) return;
-
-      if (!blocos.length || (personagemAtual && blocos[blocos.length-1].personagem !== personagemAtual)) {
-        blocos.push({ personagem: personagemAtual, falas: [] });
-      } else if (!blocos.length) {
-        blocos.push({ personagem: null, falas: [] });
-      }
-      blocos[blocos.length-1].falas.push(linha);
-    });
-
-    // Para cada bloco, limpar e separar em cenas de 8s
-    const todasCenas = [];
-    blocos.forEach(bloco => {
-      const textoBloco = bloco.falas.join(' ');
-      const limpo = ajustarTextoLocal(textoBloco);
-      if (!limpo) return;
-      const cenas = separarEm8s(limpo, bloco.personagem);
-      todasCenas.push(...cenas);
-    });
-
-    renderizarCenas(todasCenas);
-    setStatus('veo-status', 'ok', `${todasCenas.length} cenas geradas`);
-    document.getElementById('veo-output-wrap').style.display = 'block';
-  } catch(e) {
-    setStatus('veo-status', 'err', 'Erro: ' + e.message);
-  }
-}
-
-function separarEm8s(texto, personagem) {
-  // Divide nas pontuações naturais: . , ; ? !
-  // Mantém o separador junto à frase
-  const frases = texto.match(/[^.,;?!]+[.,;?!]*/g) || [texto];
-  const MAX_PALAVRAS = 20; // ~9s teto
-  const MIN_PALAVRAS = 8;  // ~3.5s mínimo antes de agrupar
-  const cenas = [];
-  let cenaAtual = '';
-
-  frases.forEach(frase => {
-    frase = frase.trim();
-    if (!frase) return;
-    const palavrasCena = cenaAtual ? cenaAtual.split(' ').length : 0;
-    const palavrasFrase = frase.split(' ').length;
-
-    if (cenaAtual === '') {
-      cenaAtual = frase;
-    } else if (palavrasCena + palavrasFrase <= MAX_PALAVRAS) {
-      // Cabe — agrupa
-      cenaAtual += ' ' + frase;
-    } else {
-      // Não cabe — fecha cena atual e começa nova
-      if (palavrasCena >= MIN_PALAVRAS) {
-        const n = cenaAtual.split(' ').length;
-        cenas.push({ texto: cenaAtual, palavras: n, duracao: (n/2.2).toFixed(1), personagem });
-        cenaAtual = frase;
-      } else {
-        // Cena atual ainda pequena — agrupa mesmo assim pra não ficar curta demais
-        cenaAtual += ' ' + frase;
-      }
-    }
+function copiarPromptVeo3(btn) {
+  const scene = btn.closest('.scene-block');
+  const texto = scene.querySelector('.scene-text').innerText.trim();
+  const prompt = `${texto}\n\n[9:16] [8 segundos] [sem áudio] [realista]`;
+  navigator.clipboard.writeText(prompt).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copiado!';
+    setTimeout(() => btn.innerHTML = orig, 1500);
   });
-
-  // Fecha última cena
-  if (cenaAtual.trim()) {
-    // Se muito curta, junta com a anterior
-    if (cenaAtual.split(' ').length < MIN_PALAVRAS && cenas.length > 0) {
-      const ultima = cenas[cenas.length - 1];
-      ultima.texto += ' ' + cenaAtual;
-      ultima.palavras = ultima.texto.split(' ').length;
-      ultima.duracao = (ultima.palavras / 2.2).toFixed(1);
-    } else {
-      const n = cenaAtual.split(' ').length;
-      cenas.push({ texto: cenaAtual, palavras: n, duracao: (n/2.2).toFixed(1), personagem });
-    }
-  }
-
-  return cenas;
-}
-
-function renderizarCenas(cenas) {
-  const container = document.getElementById('veo-cenas');
-  container.innerHTML = '';
-  cenas.forEach((c, idx) => {
-    const div = document.createElement('div');
-    div.className = 'scene-block';
-    const personagemLabel = c.personagem ? ` — ${c.personagem}` : '';
-    div.innerHTML = `
-      <div class="scene-header">
-        <span class="scene-num">CENA ${idx + 1}${personagemLabel}</span>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span class="scene-dur">~${c.duracao}s · ${c.palavras} palavras</span>
-          <button class="scene-copy-btn" onclick="copiarCena(this)">Copiar</button>
-        </div>
-      </div>
-      <div class="scene-text">${c.texto}</div>
-      <div style="margin-top:10px;">
-        <button class="btn btn-ghost btn-sm" onclick="gerarVideoVeo3(this)" style="font-size:12px;">▶ Gerar vídeo</button>
-      </div>
-      <div class="veo-status" style="margin-top:8px;display:none;"></div>
-      <div class="veo-video-wrap" style="display:none;margin-top:8px;">
-        <video controls style="width:100%;border-radius:var(--radius-sm);margin-top:4px;"></video>
-        <button class="btn btn-green btn-sm" style="margin-top:8px;" onclick="baixarVideoVeo3(this)">↓ Baixar</button>
+}(this)">↓ Baixar</button>
       </div>`;
     container.appendChild(div);
   });
