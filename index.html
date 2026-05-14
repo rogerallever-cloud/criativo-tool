@@ -334,15 +334,6 @@
   <div class="tab-panel" id="tab-veo3">
 
     <div class="card">
-      <div class="card-title">Configuração</div>
-      <div class="field">
-        <label>Chave de API do Google (Gemini)</label>
-        <input type="password" id="google-api-key" placeholder="AIza..." oninput="salvarChaveGoogle()" />
-        <div class="hint">Salva automaticamente no seu computador.</div>
-      </div>
-    </div>
-
-    <div class="card">
       <div class="card-title">Roteiro → Cenas de 8s</div>
       <div class="field">
         <label>Cole o roteiro bruto aqui</label>
@@ -389,7 +380,7 @@ function carregarChave() {
   const key = localStorage.getItem('eleven_api_key');
   if (key) document.getElementById('api-key').value = key;
 }
-window.addEventListener('DOMContentLoaded', () => { carregarChave(); carregarChaveGoogle(); });
+window.addEventListener('DOMContentLoaded', carregarChave);
 
 // ─── VOZES ──────────────────────────────────────────────────────────
 async function carregarVozes() {
@@ -595,16 +586,137 @@ function baixarAudioHook(btn) {
   a.click();
 }
 
-function copiarPromptVeo3(btn) {
-  const scene = btn.closest('.scene-block');
-  const texto = scene.querySelector('.scene-text').innerText.trim();
-  const prompt = `${texto}\n\n[9:16] [8 segundos] [sem áudio] [realista]`;
-  navigator.clipboard.writeText(prompt).then(() => {
-    const orig = btn.innerHTML;
-    btn.innerHTML = '✓ Copiado!';
-    setTimeout(() => btn.innerHTML = orig, 1500);
+// ─── VEO3 ───────────────────────────────────────────────────────────
+function processarVeo3() {
+  const texto = document.getElementById('veo-input').value.trim();
+  if (!texto) { alert('Cole o roteiro antes de processar.'); return; }
+
+  setStatus('veo-status', 'loading', 'Processando...');
+  document.getElementById('veo-output-wrap').style.display = 'none';
+
+  try {
+    // Separar por personagem antes de limpar
+    const linhas = texto.split('\n');
+    const blocos = []; // { personagem, falas[] }
+    let personagemAtual = null;
+
+    const rePersonagem = /^(Host|Convidado|Apresentador|Narrador|Guest|[A-Za-zÀ-ÿ]+)\s*:/i;
+    const reMarcador = /^[A-Za-zÀ-ÿ\/\-\s]{1,30}:\s*$|^[A-Za-zÀ-ÿ\/\-]+(?:\s[A-Za-zÀ-ÿ\/\-]+)?\s*$/;
+
+    linhas.forEach(linha => {
+      linha = linha.trim();
+      if (!linha) return;
+
+      const matchPersonagem = linha.match(/^(Host|Convidado|Apresentador|Narrador|Guest)\s*:/i);
+      if (matchPersonagem) {
+        personagemAtual = matchPersonagem[1];
+        const resto = linha.replace(/^[^:]+:\s*/, '').trim();
+        if (resto) {
+          if (!blocos.length || blocos[blocos.length-1].personagem !== personagemAtual) {
+            blocos.push({ personagem: personagemAtual, falas: [] });
+          }
+          blocos[blocos.length-1].falas.push(resto);
+        }
+        return;
+      }
+
+      // Linha é marcador de copy? ignora
+      if (reMarcador.test(linha)) return;
+
+      if (!blocos.length || (personagemAtual && blocos[blocos.length-1].personagem !== personagemAtual)) {
+        blocos.push({ personagem: personagemAtual, falas: [] });
+      } else if (!blocos.length) {
+        blocos.push({ personagem: null, falas: [] });
+      }
+      blocos[blocos.length-1].falas.push(linha);
+    });
+
+    // Para cada bloco, limpar e separar em cenas de 8s
+    const todasCenas = [];
+    blocos.forEach(bloco => {
+      const textoBloco = bloco.falas.join(' ');
+      const limpo = ajustarTextoLocal(textoBloco);
+      if (!limpo) return;
+      const cenas = separarEm8s(limpo, bloco.personagem);
+      todasCenas.push(...cenas);
+    });
+
+    renderizarCenas(todasCenas);
+    setStatus('veo-status', 'ok', `${todasCenas.length} cenas geradas`);
+    document.getElementById('veo-output-wrap').style.display = 'block';
+  } catch(e) {
+    setStatus('veo-status', 'err', 'Erro: ' + e.message);
+  }
+}
+
+function separarEm8s(texto, personagem) {
+  // Divide nas pontuações naturais: . , ; ? !
+  // Mantém o separador junto à frase
+  const frases = texto.match(/[^.,;?!]+[.,;?!]*/g) || [texto];
+  const MAX_PALAVRAS = 20; // ~9s teto
+  const MIN_PALAVRAS = 8;  // ~3.5s mínimo antes de agrupar
+  const cenas = [];
+  let cenaAtual = '';
+
+  frases.forEach(frase => {
+    frase = frase.trim();
+    if (!frase) return;
+    const palavrasCena = cenaAtual ? cenaAtual.split(' ').length : 0;
+    const palavrasFrase = frase.split(' ').length;
+
+    if (cenaAtual === '') {
+      cenaAtual = frase;
+    } else if (palavrasCena + palavrasFrase <= MAX_PALAVRAS) {
+      // Cabe — agrupa
+      cenaAtual += ' ' + frase;
+    } else {
+      // Não cabe — fecha cena atual e começa nova
+      if (palavrasCena >= MIN_PALAVRAS) {
+        const n = cenaAtual.split(' ').length;
+        cenas.push({ texto: cenaAtual, palavras: n, duracao: (n/2.2).toFixed(1), personagem });
+        cenaAtual = frase;
+      } else {
+        // Cena atual ainda pequena — agrupa mesmo assim pra não ficar curta demais
+        cenaAtual += ' ' + frase;
+      }
+    }
   });
-}(this)">↓ Baixar</button>
+
+  // Fecha última cena
+  if (cenaAtual.trim()) {
+    // Se muito curta, junta com a anterior
+    if (cenaAtual.split(' ').length < MIN_PALAVRAS && cenas.length > 0) {
+      const ultima = cenas[cenas.length - 1];
+      ultima.texto += ' ' + cenaAtual;
+      ultima.palavras = ultima.texto.split(' ').length;
+      ultima.duracao = (ultima.palavras / 2.2).toFixed(1);
+    } else {
+      const n = cenaAtual.split(' ').length;
+      cenas.push({ texto: cenaAtual, palavras: n, duracao: (n/2.2).toFixed(1), personagem });
+    }
+  }
+
+  return cenas;
+}
+
+function renderizarCenas(cenas) {
+  const container = document.getElementById('veo-cenas');
+  container.innerHTML = '';
+  cenas.forEach((c, idx) => {
+    const div = document.createElement('div');
+    div.className = 'scene-block';
+    const personagemLabel = c.personagem ? ` — ${c.personagem}` : '';
+    div.innerHTML = `
+      <div class="scene-header">
+        <span class="scene-num">CENA ${idx + 1}${personagemLabel}</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="scene-dur">~${c.duracao}s · ${c.palavras} palavras</span>
+          <button class="scene-copy-btn" onclick="copiarCena(this)">Copiar</button>
+        </div>
+      </div>
+      <div class="scene-text">${c.texto}</div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="copiarPromptVeo3(this)" style="font-size:12px;">📋 Copiar prompt pro Flow</button>
       </div>`;
     container.appendChild(div);
   });
@@ -633,99 +745,16 @@ function copiarTodasCenas() {
   });
 }
 
-// ─── VEO3 API ───────────────────────────────────────────────────────
-function salvarChaveGoogle() {
-  localStorage.setItem('google_api_key', document.getElementById('google-api-key').value);
-}
-function carregarChaveGoogle() {
-  const key = localStorage.getItem('google_api_key');
-  if (key) document.getElementById('google-api-key').value = key;
-}
-
-async function gerarVideoVeo3(btn) {
+// ─── VEO3 COPIAR PROMPT ─────────────────────────────────────────────
+function copiarPromptVeo3(btn) {
   const scene = btn.closest('.scene-block');
   const texto = scene.querySelector('.scene-text').innerText.trim();
-  const statusEl = scene.querySelector('.veo-status');
-  const videoWrap = scene.querySelector('.veo-video-wrap');
-  const videoEl = scene.querySelector('video');
-
-  const apiKey = document.getElementById('google-api-key').value.trim();
-  if (!apiKey) { alert('Informe a chave de API do Google na configuração.'); return; }
-  if (!texto) { alert('Cena sem texto.'); return; }
-
-  statusEl.style.display = 'block';
-  statusEl.innerHTML = '<span class="status loading"><span class="dot pulse"></span>Enviando para o Veo3...</span>';
-  videoWrap.style.display = 'none';
-  btn.disabled = true;
-
-  try {
-    // 1. Iniciar geração
-    const initResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instances: [{ prompt: texto }],
-          parameters: {
-            aspectRatio: '9:16',
-            durationSeconds: 8,
-            resolution: '720p',
-          }
-        })
-      }
-    );
-
-    if (!initResp.ok) {
-      const err = await initResp.json();
-      throw new Error(err.error?.message || JSON.stringify(err));
-    }
-
-    const initData = await initResp.json();
-    const operationName = initData.name;
-    if (!operationName) throw new Error('Operação não retornada pela API.');
-
-    statusEl.innerHTML = '<span class="status loading"><span class="dot pulse"></span>Gerando vídeo... (pode levar ~2 min)</span>';
-
-    // 2. Polling até concluir
-    let videoUrl = null;
-    for (let i = 0; i < 40; i++) {
-      await new Promise(r => setTimeout(r, 5000));
-      const pollResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/${operationName}?key=${apiKey}`
-      );
-      const pollData = await pollResp.json();
-
-      if (pollData.done) {
-        const videos = pollData.response?.generatedSamples || pollData.response?.videos || [];
-        if (videos.length > 0) {
-          videoUrl = videos[0].video?.uri || videos[0].uri;
-        }
-        break;
-      }
-    }
-
-    if (!videoUrl) throw new Error('Tempo esgotado ou vídeo não gerado.');
-
-    videoEl.src = videoUrl;
-    videoWrap.style.display = 'block';
-    statusEl.innerHTML = '<span class="status ok"><span class="dot"></span>Vídeo gerado</span>';
-    videoEl.play();
-
-  } catch(e) {
-    statusEl.innerHTML = `<span class="status err"><span class="dot"></span>Erro: ${e.message}</span>`;
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-function baixarVideoVeo3(btn) {
-  const videoEl = btn.closest('.veo-video-wrap').querySelector('video');
-  if (!videoEl.src) return;
-  const a = document.createElement('a');
-  a.href = videoEl.src;
-  a.download = 'video_cena_' + Date.now() + '.mp4';
-  a.click();
+  const prompt = `${texto}\n\n[9:16] [8 segundos] [sem áudio] [realista]`;
+  navigator.clipboard.writeText(prompt).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copiado!';
+    setTimeout(() => btn.innerHTML = orig, 1500);
+  });
 }
 
 // ─── UTILS ──────────────────────────────────────────────────────────
